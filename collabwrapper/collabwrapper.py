@@ -239,6 +239,10 @@ class CollabWrapper(GObject.GObject):
             self.buddy_joined.emit(buddy)
 
         self.joined.emit()
+        self.post(dict(
+            action = 'n',
+            payload = None
+        ))
 
     def _setup_text_channel(self):
         ''' Set up a text channel to use for collaboration. '''

@@ -49,6 +49,7 @@ from sugar3.graphics.alert import ErrorAlert
 from sugar3.graphics.alert import Alert
 from sugar3.graphics.icon import Icon
 from sugar3.graphics.toolbutton import ToolButton
+from sugar3.presence.presenceservice import PresenceService
 
 from viewtoolbar import ViewToolbar
 from controls import Controls
@@ -57,6 +58,12 @@ from player import GstPlayer
 from playlist import PlayList
 
 import emptypanel
+
+try:
+    from sugar3.presence.wrapper import CollabWrapper
+    logging.error('USING SUGAR COLLAB WRAPPER!')
+except ImportError:
+    from collabwrapper.collabwrapper import CollabWrapper
 
 PLAYLIST_WIDTH_PROP = 1.0 / 3
 
@@ -68,15 +75,21 @@ class JukeboxActivity(activity.Activity):
 
     def __init__(self, handle):
         activity.Activity.__init__(self, handle)
+        
+        self.pservice = PresenceService()
+        self.owner = self.pservice.get_owner()
+        self._collab = CollabWrapper(self)
+        self._collab.connect('message', self.__message_cb)
 
         self.player = None
 
         self._alert = None
         self._playlist_jobject = None
+        self._shared_playlist_jobject = None
         self._on_unfullscreen_show_playlist = False
 
         self.set_title(_('Jukebox Activity'))
-        self.max_participants = 1
+        #self.max_participants = 1
 
         toolbar_box = ToolbarBox()
         self._activity_toolbar_button = ActivityToolbarButton(self)
@@ -194,6 +207,8 @@ class JukeboxActivity(activity.Activity):
 
         Gdk.Screen.get_default().connect('size-changed', self._configure_cb)
 
+        self._collab.setup()
+        self.owner = self._collab._leader
     def _move_up_cb(self, button):
         self.playlist_widget.move_up()
 
@@ -527,6 +542,26 @@ class JukeboxActivity(activity.Activity):
             self._playlist_box.hide()
         self._video_canvas.queue_draw()
 
+    def __message_cb(self, collab, buddy, message):
+        if buddy == self.owner:
+            return
+        action = message.get('action')
+        payload = message.get('payload')
+        if(action == 'n'):
+            self._share_full_playlist()
+        elif(action == 'n1'):
+            
+        elif(action == 'a'):
+            # Add a new song to the playlist
+            pass
+        elif(action == 'r'):
+            # Remove the song from the playlist. Also know how songs are indexed in a playlist
+            pass
+        elif(action == 'p'):
+            # Play the indexed song
+            pass
+
+    def _share_full_playlist(self):
 
 class VideoWidget(Gtk.DrawingArea):
     def __init__(self):
